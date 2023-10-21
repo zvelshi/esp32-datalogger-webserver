@@ -1,6 +1,7 @@
 #include <SD_MMC.h>
 #include <FS.h>
 
+const uint8_t EN_PIN = 16;
 const uint8_t ADC_PIN = 33;
 const uint8_t ADC_READ_RESOLUTION = 12;
 const uint8_t SAMPLING_INTERVAL = 10; 
@@ -12,11 +13,8 @@ uint32_t currentMillis;
 uint32_t previousMillis = 0;
 
 File dataFile;
+bool ENState = false;
 bool isRecording = false;
-
-//testing
-unsigned long elapsedTime;
-uint32_t maxTime = 15000;
 
 void startRecording(fs::FS &fs){
   int count = 0;
@@ -41,18 +39,16 @@ void stopRecording(){
   isRecording = false;
   dataFile.close();
 }
-
+ 
 void record(){
   adcValue = analogRead(ADC_PIN);
   timestamp = millis();
-  analogReadMilliVolts(ADC_PIN)
-
+  
   dataFile.print(timestamp);
   dataFile.print(",");
   dataFile.println(adcValue);
   dataFile.flush();
 
-  Serial.print("ADC: ");
   Serial.println(adcValue);
 }
 
@@ -68,21 +64,21 @@ void setup() {
   adcAttachPin(ADC_PIN);
   analogReadResolution(ADC_READ_RESOLUTION);
 
+  pinMode(EN_PIN, INPUT_PULLUP);
   startRecording(SD_MMC);
 }
 
 void loop() {
-  //if(((currentMillis - previousMillis) >= SAMPLING_INTERVAL) && (isRecording)){
-  //  previousMillis = currentMillis;
-  //  recordData();
-  //}
-  currentMillis = millis();
-  elapsedTime = millis();
+  ENState = !digitalRead(EN_PIN);
 
-  if((((currentMillis - previousMillis) >= SAMPLING_INTERVAL) && (isRecording)) && (elapsedTime < maxTime)){
-    previousMillis = currentMillis;
-    record();
-  } else if (elapsedTime > maxTime) {
+  currentMillis = millis();
+
+  if (ENState){
+    if(((currentMillis - previousMillis) >= SAMPLING_INTERVAL) && isRecording){
+      previousMillis = currentMillis;
+      record();
+    }
+  } else if (ENState && isRecording) {
     stopRecording();
   }
 }
