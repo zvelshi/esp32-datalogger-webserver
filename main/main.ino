@@ -1,7 +1,6 @@
 #include <SD_MMC.h>
 #include <FS.h>
 
-const uint8_t FLASH_PIN = 4;
 const uint8_t EN_PIN = 16;
 const uint8_t ADC_PIN = 33;
 const uint8_t ADC_READ_RESOLUTION = 12;
@@ -34,20 +33,17 @@ void startRecording(fs::FS &fs){
 
   dataFile.println("Timestamp,Value");
   isRecording = true;
-
-  flash();
 }
 
 void stopRecording(){
   isRecording = false;
   dataFile.close();
-  flash();
 }
 
 void record(){
   adcValue = analogRead(ADC_PIN);
   timestamp = millis();
- 
+  
   dataFile.print(timestamp);
   dataFile.print(",");
   dataFile.println(adcValue);
@@ -55,17 +51,9 @@ void record(){
   Serial.println(adcValue);
 }
 
-void flash(){
-  digitalWrite(FLASH_PIN, HIGH);
-  delay(20);
-  digitalWrite(FLASH_PIN, LOW);
-  delay(20);
-}
-
 void setup() {
   Serial.begin(115200);
 
-  Serial.println("init sd");
   if (!SD_MMC.begin("/sdcard", true)) {
     Serial.println("MicroSD Card Mount Failed");
     return;
@@ -76,7 +64,6 @@ void setup() {
   analogReadResolution(ADC_READ_RESOLUTION);
 
   pinMode(EN_PIN, INPUT_PULLUP);
-  pinMode(FLASH_PIN, OUTPUT);
 }
 
 void loop() {
