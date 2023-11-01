@@ -1,10 +1,11 @@
 #include <SD_MMC.h>
 #include <FS.h>
 
+const uint8_t FLASH_PIN = 4;
 const uint8_t EN_PIN = 16;
 const uint8_t ADC_PIN = 33;
 const uint8_t ADC_READ_RESOLUTION = 12;
-const uint8_t SAMPLING_INTERVAL = 10; 
+const uint8_t SAMPLING_INTERVAL = 25; //10
 
 uint16_t adcValue;
 
@@ -13,7 +14,7 @@ uint32_t currentMillis;
 uint32_t previousMillis = 0;
 
 File dataFile;
-bool ENState = false;
+uint8_t ENState = 0;
 bool isRecording = false;
 
 void startRecording(fs::FS &fs){
@@ -33,28 +34,38 @@ void startRecording(fs::FS &fs){
 
   dataFile.println("Timestamp,Value");
   isRecording = true;
+
+  flash();
 }
 
 void stopRecording(){
   isRecording = false;
   dataFile.close();
+  flash();
 }
- 
+
 void record(){
   adcValue = analogRead(ADC_PIN);
   timestamp = millis();
-  
+ 
   dataFile.print(timestamp);
   dataFile.print(",");
   dataFile.println(adcValue);
-  dataFile.flush();
 
   Serial.println(adcValue);
+}
+
+void flash(){
+  digitalWrite(FLASH_PIN, HIGH);
+  delay(20);
+  digitalWrite(FLASH_PIN, LOW);
+  delay(20);
 }
 
 void setup() {
   Serial.begin(115200);
 
+  Serial.println("init sd");
   if (!SD_MMC.begin("/sdcard", true)) {
     Serial.println("MicroSD Card Mount Failed");
     return;
@@ -65,20 +76,21 @@ void setup() {
   analogReadResolution(ADC_READ_RESOLUTION);
 
   pinMode(EN_PIN, INPUT_PULLUP);
-  startRecording(SD_MMC);
+  pinMode(FLASH_PIN, OUTPUT);
 }
 
 void loop() {
   ENState = !digitalRead(EN_PIN);
-
   currentMillis = millis();
 
-  if (ENState){
+  if (ENState) {
     if(((currentMillis - previousMillis) >= SAMPLING_INTERVAL) && isRecording){
       previousMillis = currentMillis;
       record();
+    } else if (!isRecording) {
+      startRecording(SD_MMC);
     }
-  } else if (ENState && isRecording) {
+  } else if (!ENState && isRecording) {
     stopRecording();
   }
 }
