@@ -20,7 +20,7 @@ File dataFile;
 uint8_t ENState = 0;
 bool isRecording = false;
 
-uint32_t maxtimeMS = 0.5*60*60*1000; //30 min
+uint32_t maxtimeMS = 1*60*60*1000; //30 min
 
 void startRecording(fs::FS &fs){
   int count = 0;
